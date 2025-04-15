@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElGamal Homomorphic Encryption Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        .output {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-wrap: break-word;
+            font-family: monospace;
+            margin-top: 5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .explanation {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .step {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #3498db;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #eee;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab.active {
+            background-color: white;
+            border-top: 3px solid #3498db;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .homomorphic-demo {
+            background-color: #f0fff4;
+            border: 1px solid #4CAF50;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ElGamal Homomorphic Encryption Demo</h1>
+        <p>This interactive demonstration showcases the ElGamal cryptosystem, focusing on its multiplicative homomorphic properties.</p>
+        
+        <div class="explanation">
+            <h3>What is Homomorphic Encryption?</h3>
+            <p>Homomorphic encryption allows computations to be performed on encrypted data without decrypting it first. The ElGamal cryptosystem is <strong>multiplicatively homomorphic</strong>, meaning you can multiply two ciphertexts and the result, when decrypted, will be the product of the original plaintexts.</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('keyGen')">1. Key Generation</div>
+            <div class="tab" onclick="showTab('encryption')">2. Encryption</div>
+            <div class="tab" onclick="showTab('decryption')">3. Decryption</div>
+            <div class="tab" onclick="showTab('homomorphic')">4. Homomorphic Operation</div>
+        </div>
+
+        <div id="keyGen" class="tab-content active">
+            <h2>Step 1: Generate ElGamal Keys</h2>
+            <p>First, let's generate the necessary keys for the ElGamal cryptosystem:</p>
+            
+            <div class="form-group">
+                <label for="bitLength">Select Prime Bit Length:</label>
+                <select id="bitLength">
+                    <option value="16">16 bits (for demo purposes)</option>
+                    <option value="32">32 bits</option>
+                    <option value="64">64 bits</option>
+                </select>
+            </div>
+            
+            <button onclick="generateKeys()">Generate Keys</button>
+            
+            <h3>Generated Keys:</h3>
+            <div class="form-group">
+                <label for="prime">Prime (p):</label>
+                <input type="text" id="prime" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="generator">Generator (g):</label>
+                <input type="text" id="generator" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="privateKey">Private Key (x):</label>
+                <input type="text" id="privateKey" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="publicKey">Public Key (h = g^x mod p):</label>
+                <input type="text" id="publicKey" readonly>
+            </div>
+            
+            <div class="explanation">
+                <h3>How ElGamal Key Generation Works:</h3>
+                <p>1. We select a large prime number <strong>p</strong> and a generator <strong>g</strong> of the multiplicative group of integers modulo p</p>
+                <p>2. We generate a private key <strong>x</strong> (a random integer between 1 and p-2)</p>
+                <p>3. We compute the public key <strong>h = g^x mod p</strong></p>
+                <p>The public parameters are (p, g, h) and the private key is x</p>
+            </div>
+        </div>
+
+        <div id="encryption" class="tab-content">
+            <h2>Step 2: Encrypt a Message</h2>
+            <p>Now, let's encrypt a message using the ElGamal public key:</p>
+            
+            <div class="form-group">
+                <label for="plaintext">Enter a number to encrypt (must be less than the prime):</label>
+                <input type="number" id="plaintext" placeholder="Enter a number (plaintext)">
+            </div>
+            
+            <button onclick="encryptMessage()">Encrypt Message</button>
+            
+            <h3>Encrypted Result:</h3>
+            <div class="form-group">
+                <label>Ciphertext (c1, c2):</label>
+                <div class="form-group">
+                    <label for="c1">c1 = g^y mod p:</label>
+                    <input type="text" id="c1" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="c2">c2 = m * h^y mod p:</label>
+                    <input type="text" id="c2" readonly>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h3>How ElGamal Encryption Works:</h3>
+                <p>1. We start with a message <strong>m</strong> (which must be a number less than p)</p>
+                <p>2. We select a random value <strong>y</strong> (ephemeral key)</p>
+                <p>3. We compute the ciphertext pair:</p>
+                <p>   - <strong>c1 = g^y mod p</strong></p>
+                <p>   - <strong>c2 = m * h^y mod p</strong></p>
+                <p>The ciphertext is the pair (c1, c2)</p>
+            </div>
+        </div>
+
+        <div id="decryption" class="tab-content">
+            <h2>Step 3: Decrypt a Message</h2>
+            <p>Let's decrypt a ciphertext using the private key:</p>
+            
+            <div class="form-group">
+                <label for="decrypt_c1">Ciphertext c1:</label>
+                <input type="text" id="decrypt_c1" placeholder="c1 value">
+            </div>
+            
+            <div class="form-group">
+                <label for="decrypt_c2">Ciphertext c2:</label>
+                <input type="text" id="decrypt_c2" placeholder="c2 value">
+            </div>
+            
+            <button onclick="decryptMessage()">Decrypt Message</button>
+            
+            <h3>Decryption Result:</h3>
+            <div class="form-group">
+                <label for="decryptedMessage">Decrypted plaintext:</label>
+                <input type="text" id="decryptedMessage" readonly>
+            </div>
+            
+            <div class="explanation">
+                <h3>How ElGamal Decryption Works:</h3>
+                <p>1. We have the ciphertext pair <strong>(c1, c2)</strong> and the private key <strong>x</strong></p>
+                <p>2. We compute: <strong>s = c1^x mod p</strong></p>
+                <p>3. We compute the modular inverse of s: <strong>s^(-1) mod p</strong></p>
+                <p>4. The original message is: <strong>m = c2 * s^(-1) mod p</strong></p>
+            </div>
+        </div>
+
+        <div id="homomorphic" class="tab-content">
+            <h2>Step 4: Homomorphic Operation (Multiplication)</h2>
+            <p>Let's demonstrate the multiplicative homomorphic property of ElGamal:</p>
+            
+            <div class="grid">
+                <div class="step">
+                    <h3>First Number</h3>
+                    <div class="form-group">
+                        <label for="homo_m1">Enter first number (m1):</label>
+                        <input type="number" id="homo_m1" placeholder="First number">
+                    </div>
+                    <button onclick="encryptForHomo(1)">Encrypt m1</button>
+                    <div class="form-group">
+                        <label>Encrypted (c1_1, c2_1):</label>
+                        <input type="text" id="homo_c1_1" readonly>
+                        <input type="text" id="homo_c2_1" readonly>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <h3>Second Number</h3>
+                    <div class="form-group">
+                        <label for="homo_m2">Enter second number (m2):</label>
+                        <input type="number" id="homo_m2" placeholder="Second number">
+                    </div>
+                    <button onclick="encryptForHomo(2)">Encrypt m2</button>
+                    <div class="form-group">
+                        <label>Encrypted (c1_2, c2_2):</label>
+                        <input type="text" id="homo_c1_2" readonly>
+                        <input type="text" id="homo_c2_2" readonly>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="homomorphic-demo">
+                <h3>Homomorphic Multiplication</h3>
+                <button onclick="performHomomorphicMultiplication()">Multiply Encrypted Values</button>
+                
+                <div class="form-group">
+                    <label>Result of Homomorphic Multiplication:</label>
+                    <input type="text" id="homo_result_c1" readonly placeholder="Resulting c1">
+                    <input type="text" id="homo_result_c2" readonly placeholder="Resulting c2">
+                </div>
+                
+                <button onclick="decryptHomomorphicResult()">Decrypt Result</button>
+                
+                <div class="form-group">
+                    <label>Decrypted Result:</label>
+                    <input type="text" id="homo_decrypted" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>Verification (m1 * m2 mod p):</label>
+                    <input type="text" id="homo_verification" readonly>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h3>How Homomorphic Multiplication Works:</h3>
+                <p>Given two ciphertexts for messages m1 and m2:</p>
+                <p>- (c1_1, c2_1) for m1</p>
+                <p>- (c1_2, c2_2) for m2</p>
+                <p>The homomorphic multiplication produces a new ciphertext:</p>
+                <p>- c1_result = c1_1 * c1_2 mod p</p>
+                <p>- c2_result = c2_1 * c2_2 mod p</p>
+                <p>When decrypted, c1_result and c2_result will yield m1 * m2 mod p</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bignumber.js/9.0.2/bignumber.min.js"></script>
+    <script>
+        // Global variables to store keys and parameters
+        let p, g, x, h;
+        
+        // Show the selected tab
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show the selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Activate the clicked tab
+            Array.from(document.querySelectorAll('.tab')).find(tab => 
+                tab.textContent.includes(tabId === 'keyGen' ? '1' : 
+                                         tabId === 'encryption' ? '2' :
+                                         tabId === 'decryption' ? '3' : '4')
+            ).classList.add('active');
+        }
+        
+        // Helper function to find modular inverse using extended Euclidean algorithm
+        function modInverse(a, m) {
+            a = ((a % m) + m) % m; // Ensure a is positive
+            
+            // Extended Euclidean Algorithm
+            let [old_r, r] = [a, m];
+            let [old_s, s] = [1, 0];
+            
+            while (r !== 0) {
+                const quotient = Math.floor(old_r / r);
+                [old_r, r] = [r, old_r - quotient * r];
+                [old_s, s] = [s, old_s - quotient * s];
+            }
+            
+            // If gcd(a, m) !== 1, then a has no modular inverse
+            if (old_r !== 1) {
+                return null; // No modular inverse exists
+            }
+            
+            return ((old_s % m) + m) % m;
+        }
+        
+        // Helper function for modular exponentiation with BigInts
+        function modPow(base, exponent, modulus) {
+            if (modulus === 1n) return 0n;
+            
+            let result = 1n;
+            base = base % modulus;
+            
+            while (exponent > 0n) {
+                if (exponent % 2n === 1n) {
+                    result = (result * base) % modulus;
+                }
+                exponent = exponent >> 1n;
+                base = (base * base) % modulus;
+            }
+            
+            return result;
+        }
+        
+        // Generate a random prime number
+        function generatePrime(bits) {
+            const min = 2n ** BigInt(bits - 1);
+            const max = 2n ** BigInt(bits) - 1n;
+            
+            while (true) {
+                // Generate a random odd number in the range
+                const candidate = (BigInt(Math.floor(Math.random() * Number(max - min + 1n))) + min) | 1n;
+                
+                // Simple primality test (for demo purposes)
+                if (isProbablyPrime(candidate, 5)) {
+                    return candidate;
+                }
+            }
+        }
+        
+        // Miller-Rabin primality test
+        function isProbablyPrime(n, k) {
+            if (n <= 1n || n === 4n) return false;
+            if (n <= 3n) return true;
+            
+            // Write n-1 as 2^r * d
+            let d = n - 1n;
+            let r = 0n;
+            while (d % 2n === 0n) {
+                d /= 2n;
+                r += 1n;
+            }
+            
+            // Witness loop
+            witnessLoop: for (let i = 0; i < k; i++) {
+                // Pick a random number between 2 and n-2
+                const a = 2n + BigInt(Math.floor(Math.random() * (Number(n - 4n) + 1)));
+                
+                // Compute a^d % n
+                let x = modPow(a, d, n);
+                
+                if (x === 1n || x === n - 1n) continue;
+                
+                // Square x r-1 times
+                for (let j = 0n; j < r - 1n; j++) {
+                    x = modPow(x, 2n, n);
+                    if (x === n - 1n) continue witnessLoop;
+                }
+                
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Find a generator of the multiplicative group Z*_p
+        function findGenerator(p) {
+            // This is a simplified method for demo purposes
+            // For a proper implementation, we'd need to compute p-1's prime factors
+            
+            const factors = [2n]; // p-1 is always even, so 2 is always a factor
+            let temp = (p - 1n) / 2n;
+            
+            // For demonstration purposes, we'll just find a few small prime factors
+            for (let i = 3n; i * i <= temp; i += 2n) {
+                if (temp % i === 0n) {
+                    factors.push(i);
+                    while (temp % i === 0n) {
+                        temp /= i;
+                    }
+                }
+            }
+            
+            if (temp > 1n) {
+                factors.push(temp);
+            }
+            
+            // Try random values until we find a generator
+            for (let attempt = 0; attempt < 100; attempt++) {
+                const candidate = 2n + BigInt(Math.floor(Math.random() * (Number(p - 3n))));
+                let isGenerator = true;
+                
+                for (const factor of factors) {
+                    if (modPow(candidate, (p - 1n) / factor, p) === 1n) {
+                        isGenerator = false;
+                        break;
+                    }
+                }
+                
+                if (isGenerator) {
+                    return candidate;
+                }
+            }
+            
+            return 2n; // Fallback to 2 if we can't find a generator easily
+        }
+        
+        // Generate ElGamal keys
+        function generateKeys() {
+            const bitLength = parseInt(document.getElementById('bitLength').value);
+            
+            // Generate a prime p
+            p = generatePrime(bitLength);
+            document.getElementById('prime').value = p.toString();
+            
+            // Find a generator g
+            g = findGenerator(p);
+            document.getElementById('generator').value = g.toString();
+            
+            // Generate private key x
+            x = 1n + BigInt(Math.floor(Math.random() * Number(p - 2n)));
+            document.getElementById('privateKey').value = x.toString();
+            
+            // Calculate public key h = g^x mod p
+            h = modPow(g, x, p);
+            document.getElementById('publicKey').value = h.toString();
+            
+            // Clear other fields to prevent confusion
+            document.getElementById('plaintext').value = '';
+            document.getElementById('c1').value = '';
+            document.getElementById('c2').value = '';
+            document.getElementById('decrypt_c1').value = '';
+            document.getElementById('decrypt_c2').value = '';
+            document.getElementById('decryptedMessage').value = '';
+            
+            // Homomorphic fields
+            document.getElementById('homo_m1').value = '';
+            document.getElementById('homo_m2').value = '';
+            document.getElementById('homo_c1_1').value = '';
+            document.getElementById('homo_c2_1').value = '';
+            document.getElementById('homo_c1_2').value = '';
+            document.getElementById('homo_c2_2').value = '';
+            document.getElementById('homo_result_c1').value = '';
+            document.getElementById('homo_result_c2').value = '';
+            document.getElementById('homo_decrypted').value = '';
+            document.getElementById('homo_verification').value = '';
+        }
+        
+        // Encrypt a message
+        function encryptMessage() {
+            if (!p || !g || !h) {
+                alert("Please generate keys first!");
+                return;
+            }
+            
+            const m = BigInt(document.getElementById('plaintext').value);
+            
+            if (m <= 0n || m >= p) {
+                alert("Message must be between 1 and p-1");
+                return;
+            }
+            
+            // Generate random y
+            const y = 1n + BigInt(Math.floor(Math.random() * Number(p - 2n)));
+            
+            // Calculate c1 = g^y mod p
+            const c1 = modPow(g, y, p);
+            document.getElementById('c1').value = c1.toString();
+            
+            // Calculate c2 = m * h^y mod p
+            const hy = modPow(h, y, p);
+            const c2 = (m * hy) % p;
+            document.getElementById('c2').value = c2.toString();
+            
+            // Copy to decryption tab
+            document.getElementById('decrypt_c1').value = c1.toString();
+            document.getElementById('decrypt_c2').value = c2.toString();
+        }
+        
+        // Decrypt a message
+        function decryptMessage() {
+            if (!p || !x) {
+                alert("Please generate keys first!");
+                return;
+            }
+            
+            const c1 = BigInt(document.getElementById('decrypt_c1').value);
+            const c2 = BigInt(document.getElementById('decrypt_c2').value);
+            
+            // Calculate s = c1^x mod p
+            const s = modPow(c1, x, p);
+            
+            // Calculate s^(-1) mod p
+            // We can use modPow for this: s^(p-2) mod p by Fermat's Little Theorem
+            const s_inv = modPow(s, p - 2n, p);
+            
+            // Calculate m = c2 * s^(-1) mod p
+            const m = (c2 * s_inv) % p;
+            
+            document.getElementById('decryptedMessage').value = m.toString();
+        }
+        
+        // Encrypt for homomorphic demo
+        function encryptForHomo(num) {
+            if (!p || !g || !h) {
+                alert("Please generate keys first!");
+                return;
+            }
+            
+            const m = BigInt(document.getElementById(`homo_m${num}`).value);
+            
+            if (m <= 0n || m >= p) {
+                alert("Message must be between 1 and p-1");
+                return;
+            }
+            
+            // Generate random y
+            const y = 1n + BigInt(Math.floor(Math.random() * Number(p - 2n)));
+            
+            // Calculate c1 = g^y mod p
+            const c1 = modPow(g, y, p);
+            document.getElementById(`homo_c1_${num}`).value = c1.toString();
+            
+            // Calculate c2 = m * h^y mod p
+            const hy = modPow(h, y, p);
+            const c2 = (m * hy) % p;
+            document.getElementById(`homo_c2_${num}`).value = c2.toString();
+        }
+        
+        // Perform homomorphic multiplication
+        function performHomomorphicMultiplication() {
+            if (!p) {
+                alert("Please generate keys first!");
+                return;
+            }
+            
+            const c1_1 = BigInt(document.getElementById('homo_c1_1').value || '0');
+            const c2_1 = BigInt(document.getElementById('homo_c2_1').value || '0');
+            const c1_2 = BigInt(document.getElementById('homo_c1_2').value || '0');
+            const c2_2 = BigInt(document.getElementById('homo_c2_2').value || '0');
+            
+            if (c1_1 === 0n || c2_1 === 0n || c1_2 === 0n || c2_2 === 0n) {
+                alert("Please encrypt both messages first!");
+                return;
+            }
+            
+            // Homomorphic multiplication: multiply the components
+            const result_c1 = (c1_1 * c1_2) % p;
+            const result_c2 = (c2_1 * c2_2) % p;
+            
+            document.getElementById('homo_result_c1').value = result_c1.toString();
+            document.getElementById('homo_result_c2').value = result_c2.toString();
+            
+            // Calculate the verification value
+            const m1 = BigInt(document.getElementById('homo_m1').value);
+            const m2 = BigInt(document.getElementById('homo_m2').value);
+            const expected = (m1 * m2) % p;
+            
+            document.getElementById('homo_verification').value = expected.toString();
+        }
+        
+        // Decrypt homomorphic result
+        function decryptHomomorphicResult() {
+            if (!p || !x) {
+                alert("Please generate keys first!");
+                return;
+            }
+            
+            const c1 = BigInt(document.getElementById('homo_result_c1').value);
+            const c2 = BigInt(document.getElementById('homo_result_c2').value);
+            
+            if (c1 === 0n || c2 === 0n) {
+                alert("Please perform homomorphic multiplication first!");
+                return;
+            }
+            
+            // Calculate s = c1^x mod p
+            const s = modPow(c1, x, p);
+            
+            // Calculate s^(-1) mod p using Fermat's Little Theorem
+            const s_inv = modPow(s, p - 2n, p);
+            
+            // Calculate m = c2 * s^(-1) mod p
+            const m = (c2 * s_inv) % p;
+            
+            document.getElementById('homo_decrypted').value = m.toString();
+        }
+        
+        // Initialize on page load
+        window.onload = function() {
+            // Set default values
+            document.getElementById('bitLength').value = '16';
+            
+            // Generate initial keys
+            generateKeys();
+        };
+    </script>
+</body>
+</html>
